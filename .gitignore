@@ -1,13 +1,24 @@
-# Python-generated files
+# Python
 __pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+*.py[cod]
+*$py.class
 
 # Virtual environments
-.venv
+.venv/
+venv/
+env/
 
-#Datasets
+# Jupyter
+.ipynb_checkpoints/
+
+# Datasets
 dataset/
+
+# Model files
+models/*.keras
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
