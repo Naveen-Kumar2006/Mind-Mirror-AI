@@ -5,7 +5,7 @@ import numpy as np
 # 1. Load Dataset
 # ==========================================
 
-df = pd.read_csv("dataset/fer2013.csv")
+df = pd.read_csv(r"C:\projects\MindMirror AI\data\fer2013.csv")
 
 X = []
 
@@ -196,7 +196,7 @@ history = model.fit(
 from tensorflow.keras.models import load_model
 
 
-best_model = load_model("models/emotion_model.keras")
+best_model = load_model(r"models/emotion_model.keras")
 
 
 # ==========================================
@@ -230,7 +230,7 @@ print(f"Best Validation Loss     : "f"{min(history.history['val_loss']):.4f}")
 # 13. Save Final Model
 # ==========================================
 
-best_model.save("models/emotion_model_final.keras")
+best_model.save(r"models/emotion_model_final.keras")
 
 print("\nModel saved successfully!")
 

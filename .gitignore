@@ -21,4 +21,4 @@ models/*.keras
 .env
 
 # IDE
-.vscode/
+.vscode/data/fer2013.csv
