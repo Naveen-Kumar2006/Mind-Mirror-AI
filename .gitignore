@@ -13,6 +13,7 @@ env/
 
 # Datasets
 dataset/
+data/fer2013.csv
 
 # Model files
 models/*.keras
@@ -21,4 +22,4 @@ models/*.keras
 .env
 
 # IDE
-.vscode/data/fer2013.csv
+.vscode/
