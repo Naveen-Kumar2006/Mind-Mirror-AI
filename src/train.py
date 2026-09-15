@@ -33,8 +33,7 @@ MODEL_DIR = ROOT_DIR / "models"
 
 MODEL_DIR.mkdir(exist_ok=True)
 
-MODEL_PATH = MODEL_DIR / "emotion_model.keras"
-
+MODEL_PATH = ROOT_DIR / "models" / "emotion_model.keras"
 
 # ==========================================
 # 1. Load and Preprocess Dataset
