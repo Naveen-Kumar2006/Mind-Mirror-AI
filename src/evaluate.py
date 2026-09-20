@@ -21,8 +21,7 @@ from preprocessing import (
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-MODEL_PATH = ROOT_DIR / "models" / "emotion_model_augmented.keras"
-
+MODEL_PATH = ROOT_DIR / "models" / "emotion_model_weighted.keras"
 # ==========================================
 # 1. Load Dataset
 # ==========================================

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import (
@@ -10,10 +11,6 @@ from tensorflow.keras.layers import (
     Flatten,
     Dense,
     Dropout,
-    RandomFlip,
-    RandomRotation,
-    RandomZoom,
-    RandomTranslation,
 )
 from tensorflow.keras.callbacks import (
     EarlyStopping,
@@ -21,6 +18,7 @@ from tensorflow.keras.callbacks import (
     ReduceLROnPlateau,
 )
 from tensorflow.keras.optimizers import Adam
+from sklearn.utils.class_weight import compute_class_weight
 
 from preprocessing import (
     load_data,
@@ -36,7 +34,7 @@ from preprocessing import (
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-MODEL_PATH = ROOT_DIR / "models" / "emotion_model_augmented.keras"
+MODEL_PATH = ROOT_DIR / "models" / "emotion_model_weighted.keras"
 
 
 # ============================================================
@@ -58,6 +56,47 @@ X = preprocess_images(X)
     y_test
 ) = split_data(X, y)
 
+
+# ============================================================
+# CLASS WEIGHTS
+# ============================================================
+
+classes = np.unique(y_train)
+
+class_weights = compute_class_weight(
+    class_weight="balanced",
+    classes=classes,
+    y=y_train
+)
+
+class_weights = dict(
+    zip(classes, class_weights)
+)
+
+print("\n==========================================")
+print("CLASS WEIGHTS")
+print("==========================================")
+
+emotion_names = [
+    "Angry",
+    "Disgust",
+    "Fear",
+    "Happy",
+    "Sad",
+    "Surprise",
+    "Neutral"
+]
+
+for class_id, weight in class_weights.items():
+    print(
+        f"{emotion_names[class_id]:10s} : {weight:.4f}"
+    )
+
+
+# ============================================================
+# ENCODE LABELS
+# ============================================================
+
 (
     y_train,
     y_val,
@@ -70,33 +109,12 @@ X = preprocess_images(X)
 
 
 # ============================================================
-# DATA AUGMENTATION
-# ============================================================
-
-data_augmentation = Sequential(
-    [
-        RandomFlip("horizontal"),
-        RandomRotation(0.05),
-        RandomZoom(0.10),
-        RandomTranslation(
-            height_factor=0.05,
-            width_factor=0.05
-        ),
-    ],
-    name="data_augmentation"
-)
-
-
-# ============================================================
-# BUILD CNN MODEL
+# BUILD CNN
 # ============================================================
 
 model = Sequential(
     [
         Input(shape=(48, 48, 1)),
-
-        # Data augmentation
-        data_augmentation,
 
         # Block 1
         Conv2D(
@@ -153,7 +171,7 @@ model = Sequential(
 
 
 # ============================================================
-# COMPILE MODEL
+# COMPILE
 # ============================================================
 
 model.compile(
@@ -164,7 +182,7 @@ model.compile(
 
 
 # ============================================================
-# DISPLAY MODEL
+# MODEL SUMMARY
 # ============================================================
 
 model.summary()
@@ -198,11 +216,11 @@ reduce_lr = ReduceLROnPlateau(
 
 
 # ============================================================
-# TRAIN MODEL
+# TRAIN
 # ============================================================
 
 print("\n==========================================")
-print("STARTING AUGMENTED CNN TRAINING")
+print("STARTING CLASS-WEIGHTED CNN TRAINING")
 print("==========================================")
 
 history = model.fit(
@@ -211,6 +229,7 @@ history = model.fit(
     validation_data=(X_val, y_val),
     epochs=50,
     batch_size=64,
+    class_weight=class_weights,
     callbacks=[
         early_stopping,
         model_checkpoint,
@@ -221,7 +240,7 @@ history = model.fit(
 
 
 # ============================================================
-# FINAL TEST EVALUATION
+# FINAL TEST
 # ============================================================
 
 print("\n==========================================")
@@ -243,5 +262,5 @@ print("\n==========================================")
 print("TRAINING COMPLETE")
 print("==========================================")
 
-print(f"\nBest model saved to:")
+print("\nBest model saved to:")
 print(MODEL_PATH)
