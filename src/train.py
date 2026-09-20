@@ -1,52 +1,53 @@
 from pathlib import Path
 
-from tensorflow.keras.models import Sequential, load_model
+import tensorflow as tf
+from tensorflow.keras import Sequential
 from tensorflow.keras.layers import (
+    Input,
     Conv2D,
-    MaxPooling2D,
     BatchNormalization,
+    MaxPooling2D,
     Flatten,
     Dense,
-    Dropout
+    Dropout,
+    RandomFlip,
+    RandomRotation,
+    RandomZoom,
+    RandomTranslation,
 )
 from tensorflow.keras.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
-    ReduceLROnPlateau
+    ReduceLROnPlateau,
 )
+from tensorflow.keras.optimizers import Adam
 
 from preprocessing import (
     load_data,
     preprocess_images,
     split_data,
-    encode_labels
+    encode_labels,
 )
 
 
-# ==========================================
-# Paths
-# ==========================================
+# ============================================================
+# PATHS
+# ============================================================
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-MODEL_DIR = ROOT_DIR / "models"
+MODEL_PATH = ROOT_DIR / "models" / "emotion_model_augmented.keras"
 
-MODEL_DIR.mkdir(exist_ok=True)
 
-MODEL_PATH = ROOT_DIR / "models" / "emotion_model.keras"
+# ============================================================
+# LOAD DATA
+# ============================================================
 
-# ==========================================
-# 1. Load and Preprocess Dataset
-# ==========================================
+print("\nLoading dataset...")
 
 X, y = load_data()
 
 X = preprocess_images(X)
-
-
-# ==========================================
-# 2. Split Dataset
-# ==========================================
 
 (
     X_train,
@@ -56,11 +57,6 @@ X = preprocess_images(X)
     y_val,
     y_test
 ) = split_data(X, y)
-
-
-# ==========================================
-# 3. Encode Labels
-# ==========================================
 
 (
     y_train,
@@ -73,169 +69,124 @@ X = preprocess_images(X)
 )
 
 
-# ==========================================
-# 4. Build CNN Model
-# ==========================================
+# ============================================================
+# DATA AUGMENTATION
+# ============================================================
 
-model = Sequential()
-
-
-# ------------------------------------------
-# Block 1
-# ------------------------------------------
-
-model.add(
-    Conv2D(
-        32,
-        (3, 3),
-        activation="relu",
-        input_shape=(48, 48, 1)
-    )
-)
-
-model.add(BatchNormalization())
-
-model.add(
-    MaxPooling2D((2, 2))
+data_augmentation = Sequential(
+    [
+        RandomFlip("horizontal"),
+        RandomRotation(0.05),
+        RandomZoom(0.10),
+        RandomTranslation(
+            height_factor=0.05,
+            width_factor=0.05
+        ),
+    ],
+    name="data_augmentation"
 )
 
 
-# ------------------------------------------
-# Block 2
-# ------------------------------------------
+# ============================================================
+# BUILD CNN MODEL
+# ============================================================
 
-model.add(
-    Conv2D(
-        64,
-        (3, 3),
-        activation="relu"
-    )
-)
+model = Sequential(
+    [
+        Input(shape=(48, 48, 1)),
 
-model.add(BatchNormalization())
+        # Data augmentation
+        data_augmentation,
 
-model.add(
-    MaxPooling2D((2, 2))
-)
+        # Block 1
+        Conv2D(
+            32,
+            (3, 3),
+            activation="relu",
+            padding="same"
+        ),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
 
+        # Block 2
+        Conv2D(
+            64,
+            (3, 3),
+            activation="relu",
+            padding="same"
+        ),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
 
-# ------------------------------------------
-# Block 3
-# ------------------------------------------
+        # Block 3
+        Conv2D(
+            128,
+            (3, 3),
+            activation="relu",
+            padding="same"
+        ),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
 
-model.add(
-    Conv2D(
-        128,
-        (3, 3),
-        activation="relu"
-    )
-)
+        # Block 4
+        Conv2D(
+            256,
+            (3, 3),
+            activation="relu",
+            padding="same"
+        ),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
 
-model.add(BatchNormalization())
+        # Classifier
+        Flatten(),
 
-model.add(
-    MaxPooling2D((2, 2))
-)
+        Dense(256, activation="relu"),
+        Dropout(0.5),
 
+        Dense(128, activation="relu"),
+        Dropout(0.3),
 
-# ------------------------------------------
-# Block 4
-# ------------------------------------------
-
-model.add(
-    Conv2D(
-        256,
-        (3, 3),
-        activation="relu"
-    )
-)
-
-model.add(BatchNormalization())
-
-model.add(
-    MaxPooling2D((2, 2))
-)
-
-
-# ==========================================
-# 5. Fully Connected Layers
-# ==========================================
-
-model.add(Flatten())
-
-model.add(
-    Dense(
-        256,
-        activation="relu"
-    )
-)
-
-model.add(
-    Dropout(0.5)
-)
-
-model.add(
-    Dense(
-        128,
-        activation="relu"
-    )
-)
-
-model.add(
-    Dropout(0.3)
+        Dense(7, activation="softmax"),
+    ]
 )
 
 
-# ==========================================
-# 6. Output Layer
-# ==========================================
-
-model.add(
-    Dense(
-        7,
-        activation="softmax"
-    )
-)
-
-
-# ==========================================
-# 7. Model Summary
-# ==========================================
-
-model.summary()
-
-
-# ==========================================
-# 8. Compile Model
-# ==========================================
+# ============================================================
+# COMPILE MODEL
+# ============================================================
 
 model.compile(
-    optimizer="adam",
+    optimizer=Adam(learning_rate=0.00025),
     loss="categorical_crossentropy",
     metrics=["accuracy"]
 )
 
 
-# ==========================================
-# 9. Callbacks
-# ==========================================
+# ============================================================
+# DISPLAY MODEL
+# ============================================================
 
-early_stop = EarlyStopping(
+model.summary()
+
+
+# ============================================================
+# CALLBACKS
+# ============================================================
+
+early_stopping = EarlyStopping(
     monitor="val_loss",
     patience=7,
-    restore_best_weights=True,
-    verbose=1
+    restore_best_weights=True
 )
 
-
-checkpoint = ModelCheckpoint(
+model_checkpoint = ModelCheckpoint(
     MODEL_PATH,
     monitor="val_accuracy",
     save_best_only=True,
     mode="max",
     verbose=1
 )
-
 
 reduce_lr = ReduceLROnPlateau(
     monitor="val_loss",
@@ -246,59 +197,51 @@ reduce_lr = ReduceLROnPlateau(
 )
 
 
-# ==========================================
-# 10. Train Model
-# ==========================================
+# ============================================================
+# TRAIN MODEL
+# ============================================================
+
+print("\n==========================================")
+print("STARTING AUGMENTED CNN TRAINING")
+print("==========================================")
 
 history = model.fit(
     X_train,
     y_train,
-
-    validation_data=(
-        X_val,
-        y_val
-    ),
-
+    validation_data=(X_val, y_val),
     epochs=50,
-
     batch_size=64,
-
     callbacks=[
-        early_stop,
-        checkpoint,
+        early_stopping,
+        model_checkpoint,
         reduce_lr
-    ]
-)
-
-
-# ==========================================
-# 11. Load Best Model
-# ==========================================
-
-best_model = load_model(
-    MODEL_PATH
-)
-
-
-# ==========================================
-# 12. Final Evaluation
-# ==========================================
-
-test_loss, test_accuracy = best_model.evaluate(
-    X_test,
-    y_test,
+    ],
     verbose=1
 )
 
+
+# ============================================================
+# FINAL TEST EVALUATION
+# ============================================================
 
 print("\n==========================================")
 print("FINAL TEST RESULTS")
 print("==========================================")
 
-print(
-    f"Test Loss     : {test_loss:.4f}"
+test_loss, test_accuracy = model.evaluate(
+    X_test,
+    y_test,
+    batch_size=64,
+    verbose=1
 )
 
-print(
-    f"Test Accuracy : {test_accuracy:.4f}"
-)
+print(f"\nTest Loss     : {test_loss:.4f}")
+print(f"Test Accuracy : {test_accuracy:.4f}")
+print(f"Test Accuracy : {test_accuracy * 100:.2f}%")
+
+print("\n==========================================")
+print("TRAINING COMPLETE")
+print("==========================================")
+
+print(f"\nBest model saved to:")
+print(MODEL_PATH)
