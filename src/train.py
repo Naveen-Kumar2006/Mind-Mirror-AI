@@ -2,6 +2,9 @@ from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
+import mlflow
+import mlflow.tensorflow
+
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import (
     Input,
@@ -35,6 +38,13 @@ from preprocessing import (
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_PATH = ROOT_DIR / "models" / "emotion_model_weighted.keras"
+
+
+# ============================================================
+# MLFLOW
+# ============================================================
+
+mlflow.set_experiment("MindMirror Emotion Classification")
 
 
 # ============================================================
@@ -174,8 +184,10 @@ model = Sequential(
 # COMPILE
 # ============================================================
 
+learning_rate = 0.00025
+
 model.compile(
-    optimizer=Adam(learning_rate=0.00025),
+    optimizer=Adam(learning_rate=learning_rate),
     loss="categorical_crossentropy",
     metrics=["accuracy"]
 )
@@ -216,47 +228,128 @@ reduce_lr = ReduceLROnPlateau(
 
 
 # ============================================================
-# TRAIN
+# MLFLOW RUN
 # ============================================================
 
-print("\n==========================================")
-print("STARTING CLASS-WEIGHTED CNN TRAINING")
-print("==========================================")
+with mlflow.start_run(run_name="Class Weighted CNN"):
 
-history = model.fit(
-    X_train,
-    y_train,
-    validation_data=(X_val, y_val),
-    epochs=50,
-    batch_size=64,
-    class_weight=class_weights,
-    callbacks=[
-        early_stopping,
-        model_checkpoint,
-        reduce_lr
-    ],
-    verbose=1
-)
+    # --------------------------------------------------------
+    # LOG PARAMETERS
+    # --------------------------------------------------------
+
+    mlflow.log_params({
+        "model_type": "CNN",
+        "training_type": "class_weighted",
+        "epochs": 50,
+        "batch_size": 64,
+        "learning_rate": learning_rate,
+        "optimizer": "Adam",
+        "loss": "categorical_crossentropy",
+        "num_classes": 7,
+        "input_shape": "48x48x1",
+        "conv_blocks": 4,
+        "dropout_1": 0.5,
+        "dropout_2": 0.3,
+    })
+
+    # Log class weights
+    for class_id, weight in class_weights.items():
+        mlflow.log_param(
+            f"class_weight_{emotion_names[class_id]}",
+            float(weight)
+        )
+
+    # --------------------------------------------------------
+    # TRAIN
+    # --------------------------------------------------------
+
+    print("\n==========================================")
+    print("STARTING CLASS-WEIGHTED CNN TRAINING")
+    print("==========================================")
+
+    history = model.fit(
+        X_train,
+        y_train,
+        validation_data=(X_val, y_val),
+        epochs=50,
+        batch_size=64,
+        class_weight=class_weights,
+        callbacks=[
+            early_stopping,
+            model_checkpoint,
+            reduce_lr
+        ],
+        verbose=1
+    )
+
+    # --------------------------------------------------------
+    # LOG TRAINING METRICS
+    # --------------------------------------------------------
+
+    best_val_accuracy = max(
+        history.history["val_accuracy"]
+    )
+
+    best_val_loss = min(
+        history.history["val_loss"]
+    )
+
+    final_train_accuracy = (
+        history.history["accuracy"][-1]
+    )
+
+    final_train_loss = (
+        history.history["loss"][-1]
+    )
+
+    mlflow.log_metrics({
+        "best_val_accuracy": float(best_val_accuracy),
+        "best_val_loss": float(best_val_loss),
+        "final_train_accuracy": float(final_train_accuracy),
+        "final_train_loss": float(final_train_loss),
+    })
+
+    # --------------------------------------------------------
+    # FINAL TEST
+    # --------------------------------------------------------
+
+    print("\n==========================================")
+    print("FINAL TEST RESULTS")
+    print("==========================================")
+
+    test_loss, test_accuracy = model.evaluate(
+        X_test,
+        y_test,
+        batch_size=64,
+        verbose=1
+    )
+
+    print(f"\nTest Loss     : {test_loss:.4f}")
+    print(f"Test Accuracy : {test_accuracy:.4f}")
+    print(f"Test Accuracy : {test_accuracy * 100:.2f}%")
+
+    # --------------------------------------------------------
+    # LOG TEST METRICS
+    # --------------------------------------------------------
+
+    mlflow.log_metrics({
+        "test_loss": float(test_loss),
+        "test_accuracy": float(test_accuracy),
+    })
+
+    # --------------------------------------------------------
+    # LOG MODEL
+    # --------------------------------------------------------
+
+    mlflow.tensorflow.log_model(
+        model,
+        name="emotion_model"
+    )
 
 
 # ============================================================
-# FINAL TEST
+# TRAINING COMPLETE
 # ============================================================
-
-print("\n==========================================")
-print("FINAL TEST RESULTS")
-print("==========================================")
-
-test_loss, test_accuracy = model.evaluate(
-    X_test,
-    y_test,
-    batch_size=64,
-    verbose=1
-)
-
-print(f"\nTest Loss     : {test_loss:.4f}")
-print(f"Test Accuracy : {test_accuracy:.4f}")
-print(f"Test Accuracy : {test_accuracy * 100:.2f}%")
 
 print("\n==========================================")
 print("TRAINING COMPLETE")
@@ -264,3 +357,6 @@ print("==========================================")
 
 print("\nBest model saved to:")
 print(MODEL_PATH)
+
+print("\nMLflow experiment:")
+print("MindMirror Emotion Classification")

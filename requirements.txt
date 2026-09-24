@@ -6,3 +6,4 @@ opencv-python
 scikit-learn
 streamlit
 pillow
+mlflow
