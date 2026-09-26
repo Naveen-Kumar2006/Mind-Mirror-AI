@@ -18,6 +18,11 @@ data/fer2013.csv
 # Model files
 models/*.keras
 
+# MLflow
+mlflow.db
+mlflow_backup.db
+mlruns/
+
 # Environment variables
 .env
 
