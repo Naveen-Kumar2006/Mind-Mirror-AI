@@ -1,18 +1,23 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
 
 # Virtual Environment
 .venv/
+venv/
+env/
 
 # Jupyter
 .ipynb_checkpoints/
 
 # Dataset
 data/fer2013.csv
+dataset/
 
 # Trained Models
 models/*.keras
+models/*.h5
 
 # MLflow
 mlflow_new.db
@@ -22,10 +27,25 @@ mlruns/
 
 # Environment
 .env
+.env.*
+!.env.example
 
 # IDE
 .vscode/
+.idea/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Python packaging
+*.egg-info/
+dist/
+build/

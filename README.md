@@ -278,60 +278,12 @@ The API returns the predicted emotion and confidence score.
                   CNN Training
                         ↓
                 Model Evaluation
-                        ↓
-                 MLflow Tracking
-                        ↓
-              emotion_model.keras
-                        ↓
-                  FastAPI Server
-                        ↓
-                  POST /predict
-                        ↓
-                  Image Upload
-                        ↓
-               Image Preprocessing
-                        ↓
-                   CNN Model
-                        ↓
-               Emotion Prediction
-                        ↓
-              Emotion + Confidence
-```
-16. Future Improvements
-Potential improvements for future versions include:
-Transfer learning with pretrained CNN architectures.
-Improved data augmentation.
-Hyperparameter optimization.
-Better handling of class imbalance.
-Improved emotion classification performance.
-Batch image prediction.
-Docker containerization.
-Cloud deployment.
-API authentication.
-Production monitoring.
-Model versioning and deployment workflows.
-17. Project Outcome
-MindMirror AI demonstrates an end-to-end machine learning application rather than only a model-training experiment.
-The project integrates:
-```text
-Machine Learning
-       +
-Deep Learning
-       +
-Computer Vision
-       +
-Experiment Tracking
-       +
-REST API
-       +
-Model Serving
-```
-This provides practical experience in taking a trained deep learning model from data preprocessing and experimentation to API-based inference.
-18. Author
-Naveen Kumar T
-AI & Data Science Student  
-Aspiring Machine Learning Engineer
-GitHub: `https://github.com/Naveen-Kumar2006`
-LinkedIn: `https://www.linkedin.com/in/naveen-kumar-t-37a920350`
-19. License
-This project is intended for educational and portfolio purposes.
+                       │
+                       ▼
+              Trained CNN Model
+                       │
+                       ▼
+                 FastAPI API
+                       │
+                       ▼
+              Emotion Prediction
