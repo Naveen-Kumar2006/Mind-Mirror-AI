@@ -6,8 +6,6 @@ opencv-python
 scikit-learn
 streamlit
 pillow
-
-# FastAPI
-fastapi
+# FastAPI`r`nfastapi
 uvicorn
 python-multipart
