@@ -178,3 +178,11 @@ async def predict(file: UploadFile = File(...)):
             status_code=500,
             detail=f"Prediction failed: {str(e)}"
         )
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
+        "model": "Baseline CNN"
+    }
