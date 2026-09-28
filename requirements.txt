@@ -6,4 +6,8 @@ opencv-python
 scikit-learn
 streamlit
 pillow
-mlflow
+
+# FastAPI
+fastapi
+uvicorn
+python-multipart
