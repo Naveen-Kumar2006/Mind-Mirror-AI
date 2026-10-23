@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-import tensorflow as tf
 import mlflow
 import mlflow.tensorflow
 
@@ -29,27 +28,15 @@ from preprocessing import (
     split_data,
     encode_labels,
 )
+from mlflow_config import configure_mlflow, EXPERIMENT_NAME
 
-
-# ============================================================
-# PATHS
-# ============================================================
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_PATH = ROOT_DIR / "models" / "emotion_model_weighted.keras"
 
+configure_mlflow()
 
-# ============================================================
-# MLFLOW
-# ============================================================
-
-mlflow.set_experiment("MindMirror Emotion Classification")
-
-
-# ============================================================
-# LOAD DATA
-# ============================================================
 
 print("\nLoading dataset...")
 
@@ -66,10 +53,6 @@ X = preprocess_images(X)
     y_test
 ) = split_data(X, y)
 
-
-# ============================================================
-# CLASS WEIGHTS
-# ============================================================
 
 classes = np.unique(y_train)
 
@@ -103,10 +86,6 @@ for class_id, weight in class_weights.items():
     )
 
 
-# ============================================================
-# ENCODE LABELS
-# ============================================================
-
 (
     y_train,
     y_val,
@@ -116,11 +95,6 @@ for class_id, weight in class_weights.items():
     y_val,
     y_test
 )
-
-
-# ============================================================
-# BUILD CNN
-# ============================================================
 
 model = Sequential(
     [
@@ -180,11 +154,9 @@ model = Sequential(
 )
 
 
-# ============================================================
-# COMPILE
-# ============================================================
-
 learning_rate = 0.00025
+max_epochs = 50
+batch_size = 64
 
 model.compile(
     optimizer=Adam(learning_rate=learning_rate),
@@ -193,16 +165,9 @@ model.compile(
 )
 
 
-# ============================================================
-# MODEL SUMMARY
-# ============================================================
 
 model.summary()
 
-
-# ============================================================
-# CALLBACKS
-# ============================================================
 
 early_stopping = EarlyStopping(
     monitor="val_loss",
@@ -211,7 +176,7 @@ early_stopping = EarlyStopping(
 )
 
 model_checkpoint = ModelCheckpoint(
-    MODEL_PATH,
+    str(MODEL_PATH),
     monitor="val_accuracy",
     save_best_only=True,
     mode="max",
@@ -227,21 +192,20 @@ reduce_lr = ReduceLROnPlateau(
 )
 
 
-# ============================================================
-# MLFLOW RUN
-# ============================================================
+with mlflow.start_run(
+    run_name="Class Weighted CNN",
+    tags={
+        "run_type": "training",
+        "model_file": MODEL_PATH.name,
+    },
+) as run:
 
-with mlflow.start_run(run_name="Class Weighted CNN"):
-
-    # --------------------------------------------------------
-    # LOG PARAMETERS
-    # --------------------------------------------------------
 
     mlflow.log_params({
         "model_type": "CNN",
         "training_type": "class_weighted",
-        "epochs": 50,
-        "batch_size": 64,
+        "epochs": max_epochs,
+        "batch_size": batch_size,
         "learning_rate": learning_rate,
         "optimizer": "Adam",
         "loss": "categorical_crossentropy",
@@ -259,10 +223,6 @@ with mlflow.start_run(run_name="Class Weighted CNN"):
             float(weight)
         )
 
-    # --------------------------------------------------------
-    # TRAIN
-    # --------------------------------------------------------
-
     print("\n==========================================")
     print("STARTING CLASS-WEIGHTED CNN TRAINING")
     print("==========================================")
@@ -271,8 +231,8 @@ with mlflow.start_run(run_name="Class Weighted CNN"):
         X_train,
         y_train,
         validation_data=(X_val, y_val),
-        epochs=50,
-        batch_size=64,
+        epochs=max_epochs,
+        batch_size=batch_size,
         class_weight=class_weights,
         callbacks=[
             early_stopping,
@@ -282,9 +242,18 @@ with mlflow.start_run(run_name="Class Weighted CNN"):
         verbose=1
     )
 
-    # --------------------------------------------------------
-    # LOG TRAINING METRICS
-    # --------------------------------------------------------
+    for epoch in range(len(history.history["loss"])):
+        epoch_metrics = {
+            f"train_{metric_name}": float(values[epoch])
+            for metric_name, values in history.history.items()
+            if not metric_name.startswith("val_")
+        }
+        epoch_metrics.update({
+            f"validation_{metric_name[4:]}": float(values[epoch])
+            for metric_name, values in history.history.items()
+            if metric_name.startswith("val_")
+        })
+        mlflow.log_metrics(epoch_metrics, step=epoch)
 
     best_val_accuracy = max(
         history.history["val_accuracy"]
@@ -309,10 +278,6 @@ with mlflow.start_run(run_name="Class Weighted CNN"):
         "final_train_loss": float(final_train_loss),
     })
 
-    # --------------------------------------------------------
-    # FINAL TEST
-    # --------------------------------------------------------
-
     print("\n==========================================")
     print("FINAL TEST RESULTS")
     print("==========================================")
@@ -328,28 +293,17 @@ with mlflow.start_run(run_name="Class Weighted CNN"):
     print(f"Test Accuracy : {test_accuracy:.4f}")
     print(f"Test Accuracy : {test_accuracy * 100:.2f}%")
 
-    # --------------------------------------------------------
-    # LOG TEST METRICS
-    # --------------------------------------------------------
-
     mlflow.log_metrics({
         "test_loss": float(test_loss),
         "test_accuracy": float(test_accuracy),
     })
 
-    # --------------------------------------------------------
-    # LOG MODEL
-    # --------------------------------------------------------
-
     mlflow.tensorflow.log_model(
         model,
         name="emotion_model"
     )
+    print(f"MLflow run ID: {run.info.run_id}")
 
-
-# ============================================================
-# TRAINING COMPLETE
-# ============================================================
 
 print("\n==========================================")
 print("TRAINING COMPLETE")
@@ -359,4 +313,4 @@ print("\nBest model saved to:")
 print(MODEL_PATH)
 
 print("\nMLflow experiment:")
-print("MindMirror Emotion Classification")
+print(EXPERIMENT_NAME)

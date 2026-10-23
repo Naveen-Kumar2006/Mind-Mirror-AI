@@ -287,3 +287,48 @@ The API returns the predicted emotion and confidence score.
                        │
                        ▼
               Emotion Prediction
+```
+
+16. MLflow Tracking
+
+The training and model-evaluation scripts use the `MindMirror Emotion
+Classification` experiment. By default, the tracking store is the
+project-root `mlflow_new.db` SQLite database. The `mlflow_backup.db` file is
+preserved separately and is not used unless selected explicitly.
+
+Set `MLFLOW_TRACKING_URI` to use another MLflow tracking store. For example,
+in PowerShell:
+
+```powershell
+$env:MLFLOW_TRACKING_URI = "sqlite:///C:/path/to/MindMirror AI/mlflow_new.db"
+```
+
+Run the scripts from the project root after installing the dependencies and
+placing `data/fer2013.csv` in the expected location:
+
+```powershell
+python src/train.py
+python src/log_existing_models.py
+python src/log_evaluation_artifacts.py
+```
+
+`train.py` trains the class-weighted model and creates a new training run.
+`log_existing_models.py` evaluates each available saved CNN model against the
+same FER2013 test split and creates a new run for each evaluated model.
+`log_evaluation_artifacts.py` adds classification reports and confusion
+matrices to the matching existing run; it does not create runs or replace
+previous evaluation artifacts.
+
+Open the local MLflow UI against the same database:
+
+```powershell
+# When MLFLOW_TRACKING_URI is set:
+mlflow ui --backend-store-uri $env:MLFLOW_TRACKING_URI
+
+# Otherwise, from the project root:
+mlflow ui --backend-store-uri "sqlite:///./mlflow_new.db"
+```
+
+If `MLFLOW_TRACKING_URI` is unset, the scripts use the project-root database
+automatically. The relative SQLite URI above opens that same database when
+the UI is started from the project root.

@@ -1,21 +1,11 @@
 from pathlib import Path
-
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-
-# ==========================================
-# Paths
-# ==========================================
-
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = ROOT_DIR / "data" / "fer2013.csv"
 
-
-# ==========================================
-# Load Dataset
-# ==========================================
 
 def load_data():
 
@@ -42,10 +32,6 @@ def load_data():
     return X, y
 
 
-# ==========================================
-# Preprocess Images
-# ==========================================
-
 def preprocess_images(X):
 
     X = X / 255.0
@@ -57,16 +43,7 @@ def preprocess_images(X):
     return X
 
 
-# ==========================================
-# Split Dataset
-# ==========================================
-
 def split_data(X, y):
-
-    # ==========================================
-    # First Split
-    # ==========================================
-
 
     X_temp, X_test, y_temp, y_test = train_test_split(
         X,
@@ -76,10 +53,6 @@ def split_data(X, y):
         stratify=y
     )
 
-
-    # ==========================================
-    # Second Split
-    # ==========================================
 
     X_train, X_val, y_train, y_val = train_test_split(
         X_temp,
@@ -105,11 +78,6 @@ def split_data(X, y):
         y_val,
         y_test
     )
-
-
-# ==========================================
-# Encode Labels
-# ==========================================
 
 def encode_labels(y_train, y_val, y_test):
     y_train = np.eye(7)[y_train]

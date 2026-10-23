@@ -6,6 +6,8 @@ opencv-python
 scikit-learn
 streamlit
 pillow
-# FastAPI`r`nfastapi
+# FastAPI
+fastapi
 uvicorn
 python-multipart
+mlflow==3.16.1

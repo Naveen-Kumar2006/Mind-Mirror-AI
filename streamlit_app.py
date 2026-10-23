@@ -1,4 +1,3 @@
-```python
 import os
 
 import altair as alt
@@ -244,4 +243,3 @@ if uploaded_file is not None:
             "Unable to open this image. "
             "Please upload a valid JPG or PNG image."
         )
-```
