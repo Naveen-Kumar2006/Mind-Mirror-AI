@@ -1,334 +1,229 @@
-MindMirror AI — Project Documentation
-1. Project Overview
-MindMirror AI is a CNN-based facial emotion recognition system trained on the FER2013 dataset. The system classifies facial expressions into seven emotion categories: Angry, Disgust, Fear, Happy, Sad, Surprise, and Neutral.
-The project implements an end-to-end machine learning workflow, including image preprocessing, CNN model training, model evaluation, MLflow experiment tracking, and FastAPI-based model serving.
-Users can upload a facial image through the FastAPI REST API, and the system returns the predicted emotion along with its confidence score.
-2. Project Objectives
-The main objectives of MindMirror AI are:
-Build a facial emotion classification system using deep learning.
-Train a CNN using the FER2013 dataset.
-Perform image preprocessing and normalization.
-Evaluate model performance using classification metrics.
-Track machine learning experiments using MLflow.
-Compare different CNN training approaches.
-Deploy the trained model through a FastAPI REST API.
-Provide real-time emotion predictions from uploaded images.
-3. Emotion Classes
-Label	Emotion
-0	Angry
-1	Disgust
-2	Fear
-3	Happy
-4	Sad
-5	Surprise
-6	Neutral
-4. Dataset
-The project uses the FER2013 (Facial Expression Recognition 2013) dataset.
-The images are grayscale facial images with a resolution of 48 × 48 pixels.
-The dataset contains 35,887 images.
-Dataset Split
-Dataset	Images
-Training	28,709
-Validation	3,589
-Testing	3,589
-The dataset is split using stratified sampling to maintain the distribution of emotion classes.
-5. Image Preprocessing
-The raw FER2013 pixel data is converted into image arrays before being provided to the CNN.
-The preprocessing pipeline consists of:
-Reading pixel values from the dataset.
-Converting the pixel strings into numerical arrays.
-Reshaping each image into `48 × 48`.
-Normalizing pixel values using `/255.0`.
-Adding the grayscale channel dimension.
-Encoding the emotion labels into seven classes.
-The final model input shape is:
-`(48, 48, 1)`
-6. CNN Architecture
-The baseline model uses multiple convolutional blocks followed by fully connected layers.
+# 🧠 MindMirror AI — Facial Expression Recognition
+
+An end-to-end Deep Learning application that predicts facial expressions from uploaded images using a Convolutional Neural Network (CNN). The application provides a web interface for image uploads, predictions, model confidence, and emotion probability visualization.
+
+🌐 **Live Demo:** [Try MindMirror AI](https://mind-mirror-ai-havrwb3wgxf3xqbqmc6yan.streamlit.app/)
+
+🚀 **Backend API:** [FastAPI Backend](https://mind-mirror-ai.onrender.com)
+
+---
+
+## 📌 Project Overview
+
+MindMirror AI demonstrates the development and deployment of a computer vision application, from model training and evaluation to backend API development and frontend integration.
+
+Users can upload a facial image and receive a predicted facial expression along with the model's confidence score and probability distribution.
+
+> **Note:** The model predicts facial-expression categories. Its predictions do not establish a person's actual emotional state.
+
+## ✨ Features
+
+* 🧠 **CNN-Based Prediction:** Predicts facial-expression categories using a trained deep learning model.
+* 🖼️ **Image Upload:** Supports JPG, JPEG, and PNG images.
+* ⚡ **REST API:** Processes prediction requests through FastAPI.
+* 📊 **Confidence Score:** Displays the model's confidence for its prediction.
+* 📈 **Probability Visualization:** Uses an interactive Altair chart to display emotion probabilities.
+* 🌐 **Live Deployment:** Streamlit frontend and Render-hosted backend.
+* 🛡️ **Error Handling:** Handles API connection failures, request timeouts, and invalid responses.
+
+## 🛠️ Tech Stack
+
+| Category             | Technologies                      |
+| -------------------- | --------------------------------- |
+| Programming Language | Python                            |
+| Deep Learning        | TensorFlow, Keras                 |
+| Computer Vision      | Pillow, image preprocessing       |
+| Backend              | FastAPI, Uvicorn                  |
+| Frontend             | Streamlit                         |
+| Data Visualization   | Pandas, Altair                    |
+| HTTP Requests        | Requests                          |
+| Deployment           | Streamlit Community Cloud, Render |
+| Version Control      | Git, GitHub                       |
+
+## 🏗️ System Architecture
+
 ```text
-Input: 48 × 48 × 1
-        ↓
-Conv2D - 32 filters
-        ↓
-Batch Normalization
-        ↓
-MaxPooling
-        ↓
-Conv2D - 64 filters
-        ↓
-Batch Normalization
-        ↓
-MaxPooling
-        ↓
-Conv2D - 128 filters
-        ↓
-Batch Normalization
-        ↓
-MaxPooling
-        ↓
-Conv2D - 256 filters
-        ↓
-Batch Normalization
-        ↓
-MaxPooling
-        ↓
-Flatten
-        ↓
-Dense - 256
-        ↓
-Dropout
-        ↓
-Dense - 128
-        ↓
-Dropout
-        ↓
-Dense - 7
-        ↓
-Softmax
+             User
+              |
+              v
+    +---------------------+
+    | Streamlit Frontend  |
+    | Image Upload        |
+    +---------------------+
+              |
+              | HTTP POST /predict
+              v
+    +---------------------+
+    | FastAPI Backend     |
+    | Image Processing    |
+    +---------------------+
+              |
+              v
+    +---------------------+
+    | Trained CNN Model   |
+    | Expression Predict. |
+    +---------------------+
+              |
+              v
+    +---------------------+
+    | Prediction Results  |
+    | Confidence          |
+    | Probabilities       |
+    +---------------------+
+              |
+              v
+    +---------------------+
+    | Streamlit Dashboard |
+    | Result + Chart      |
+    +---------------------+
 ```
-Training Configuration
-Optimizer: Adam
-Loss Function: Categorical Crossentropy
-Metric: Accuracy
-Batch Size: 64
-Maximum Epochs: 50
-Early Stopping
-Model Checkpoint
-ReduceLROnPlateau
-7. Model Evaluation
-The baseline CNN achieved a test accuracy of:
-59.68%
-The model was evaluated using:
-Accuracy
-Precision
-Recall
-F1-score
-Classification report
-Confusion matrix
-Class-wise F1 Score
-Emotion	F1 Score
-Angry	50.16%
-Disgust	48.19%
-Fear	40.90%
-Happy	80.52%
-Sad	48.01%
-Surprise	71.99%
-Neutral	55.12%
-The evaluation artifacts are tracked using MLflow.
-8. MLflow Experiment Tracking
-MLflow is used to track the machine learning experiments and evaluation results.
-The project contains experiments for:
-Baseline CNN
-Augmented CNN
-Class Weighted CNN
-MLflow is used to track:
-Training parameters
-Training metrics
-Validation metrics
-Test metrics
-Model artifacts
-Classification reports
-Confusion matrices
-This provides a centralized way to compare different model experiments and maintain experiment history.
-9. FastAPI Model Serving
-The trained Baseline CNN is served through a FastAPI REST API.
-The API provides an endpoint for facial emotion prediction.
-Prediction Endpoint
+
+## 🔄 How It Works
+
+1. The user uploads a facial image through the Streamlit interface.
+2. The frontend sends the image to the FastAPI `/predict` endpoint.
+3. The backend preprocesses the image to match the model's expected input format.
+4. The trained CNN generates prediction scores.
+5. The backend returns the predicted expression, confidence score, and probability distribution.
+6. The frontend displays the prediction and an interactive probability chart.
+
+## 🚀 Live Application
+
+**Frontend:** [Open MindMirror AI](https://mind-mirror-ai-havrwb3wgxf3xqbqmc6yan.streamlit.app/)
+
+**Backend Health Check:** [Check API Status](https://mind-mirror-ai.onrender.com/health)
+
+To try the application:
+
+1. Open the live frontend.
+2. Upload a facial image.
+3. Click **Analyze Emotion**.
+4. View the predicted expression and confidence score.
+5. Explore the emotion probability chart.
+
+*Note: The free backend hosting plan may introduce a delay when the service wakes up after inactivity.*
+
+## 📁 Project Structure
+
 ```text
-POST /predict
-```
-The endpoint accepts an image file.
-Prediction Workflow
-```text
-Image Upload
-     ↓
-FastAPI
-     ↓
-Read Image
-     ↓
-Convert to Grayscale
-     ↓
-Resize to 48 × 48
-     ↓
-Normalize Pixel Values
-     ↓
-CNN Model
-     ↓
-Emotion Probabilities
-     ↓
-Select Highest Probability
-     ↓
-Return Prediction
-```
-Example Response
-```json
-{
-    "emotion": "Happy",
-    "confidence": 0.8234,
-    "probabilities": {
-        "Angry": 0.0213,
-        "Disgust": 0.0012,
-        "Fear": 0.0345,
-        "Happy": 0.8234,
-        "Sad": 0.0456,
-        "Surprise": 0.0521,
-        "Neutral": 0.0219
-    }
-}
-```
-10. API Documentation
-FastAPI provides an interactive Swagger UI for testing the API.
-Start the application using:
-```bash
-uvicorn api:app --reload
-```
-The Swagger documentation is available at:
-`http://127.0.0.1:8000/docs`
-Users can upload a facial image through the `/predict` endpoint and directly test the trained model.
-11. Technology Stack
-Programming Language
-Python
-Machine Learning & Deep Learning
-TensorFlow
-Keras
-Scikit-learn
-NumPy
-Pandas
-Computer Vision
-Pillow
-OpenCV
-Experiment Tracking
-MLflow
-API Development
-FastAPI
-Uvicorn
-Pydantic
-Development & Version Control
-VS Code
-Git
-GitHub
-12. Project Structure
-```text
-MindMirror AI/
+Mind-Mirror-AI/
 │
-├── data/
-│   └── fer2013.csv
-│
-├── models/
-│   ├── emotion_model.keras
-│   ├── emotion_model_augmented.keras
-│   └── emotion_model_weighted.keras
-│
-├── notebooks/
-│   └── emotion_training.ipynb
-│
-├── src/
-│   ├── preprocessing.py
-│   ├── train.py
-│   ├── evaluate.py
-│   ├── predict.py
-│   ├── log_existing_models.py
-│   └── log_evaluation_artifacts.py
-│
-├── api.py
+├── app.py
+├── streamlit_app.py
 ├── requirements.txt
 ├── README.md
-├── pyproject.toml
-├── uv.lock
-└── .gitignore
+│
+├── models/
+│   └── [Trained model files]
+│
+├── src/
+│   ├── train.py
+│   ├── evaluate.py
+│   ├── preprocessing.py
+│   └── [Additional project modules]
+│
+└── [Additional configuration and project files]
 ```
-13. Installation
-Clone the repository:
+
+*The structure above is illustrative. Update it to match the files actually committed to your repository.*
+
+## 📊 Model Evaluation
+
+The project includes model training and evaluation modules.
+
+Important evaluation metrics for this classification task include:
+
+* **Accuracy:** Overall proportion of correct predictions.
+* **Precision:** Proportion of positive predictions that are correct for a given class.
+* **Recall:** Proportion of actual class instances correctly identified.
+* **F1-score:** Harmonic mean of precision and recall.
+* **Confusion Matrix:** Shows correct and incorrect predictions across classes.
+
+Model performance should be reported using results from the final evaluation on held-out test data.
+
+## 🔧 Run Locally
+
+### 1. Clone the repository
+
 ```bash
 git clone https://github.com/Naveen-Kumar2006/Mind-Mirror-AI.git
-```
-Navigate to the project directory:
-```bash
 cd Mind-Mirror-AI
 ```
-Create a virtual environment:
+
+### 2. Create a virtual environment
+
 ```bash
 python -m venv .venv
 ```
-Activate the virtual environment on Windows:
+
+Activate it on Windows:
+
 ```powershell
 .venv\Scripts\Activate.ps1
 ```
-Install the required dependencies:
+
+### 3. Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
-14. Running the Application
-Start the FastAPI server:
+
+### 4. Start the FastAPI backend
+
+Use the actual backend module and application object defined in your repository. For example, if your FastAPI application is exposed as `app` in `app.py`:
+
 ```bash
-uvicorn api:app --reload
-```
-Open the Swagger UI:
-`http://127.0.0.1:8000/docs`
-Select:
-`POST /predict`
-Upload a facial image and execute the request.
-The API returns the predicted emotion and confidence score.
-15. End-to-End Architecture
-```text
-                 FER2013 Dataset
-                        ↓
-                Data Preprocessing
-                        ↓
-                  CNN Training
-                        ↓
-                Model Evaluation
-                       │
-                       ▼
-              Trained CNN Model
-                       │
-                       ▼
-                 FastAPI API
-                       │
-                       ▼
-              Emotion Prediction
+uvicorn app:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-16. MLflow Tracking
+### 5. Start the Streamlit frontend
 
-The training and model-evaluation scripts use the `MindMirror Emotion
-Classification` experiment. By default, the tracking store is the
-project-root `mlflow_new.db` SQLite database. The `mlflow_backup.db` file is
-preserved separately and is not used unless selected explicitly.
+Open a second terminal in the project directory.
 
-Set `MLFLOW_TRACKING_URI` to use another MLflow tracking store. For example,
-in PowerShell:
+Set the backend URL for local development:
 
 ```powershell
-$env:MLFLOW_TRACKING_URI = "sqlite:///C:/path/to/MindMirror AI/mlflow_new.db"
+$env:API_URL = "http://127.0.0.1:8000"
 ```
 
-Run the scripts from the project root after installing the dependencies and
-placing `data/fer2013.csv` in the expected location:
+Start Streamlit:
 
-```powershell
-python src/train.py
-python src/log_existing_models.py
-python src/log_evaluation_artifacts.py
+```bash
+streamlit run streamlit_app.py
 ```
 
-`train.py` trains the class-weighted model and creates a new training run.
-`log_existing_models.py` evaluates each available saved CNN model against the
-same FER2013 test split and creates a new run for each evaluated model.
-`log_evaluation_artifacts.py` adds classification reports and confusion
-matrices to the matching existing run; it does not create runs or replace
-previous evaluation artifacts.
+If your backend module has a different filename, adjust the Uvicorn command accordingly.
 
-Open the local MLflow UI against the same database:
+## 🎯 Learning Outcomes
 
-```powershell
-# When MLFLOW_TRACKING_URI is set:
-mlflow ui --backend-store-uri $env:MLFLOW_TRACKING_URI
+This project demonstrates practical experience with:
 
-# Otherwise, from the project root:
-mlflow ui --backend-store-uri "sqlite:///./mlflow_new.db"
-```
+* Building and using a CNN for image classification.
+* Preprocessing images for deep learning inference.
+* Developing REST APIs with FastAPI.
+* Integrating a Python frontend with a machine learning backend.
+* Visualizing classification probabilities.
+* Deploying an end-to-end ML application.
+* Managing source code using Git and GitHub.
 
-If `MLFLOW_TRACKING_URI` is unset, the scripts use the project-root database
-automatically. The relative SQLite URI above opens that same database when
-the UI is started from the project root.
+## 🔮 Future Improvements
+
+* Improve model generalization and reduce overfitting.
+* Evaluate performance across individual expression classes.
+* Add a confusion matrix and per-class classification report.
+* Improve robustness to lighting, pose, and image-quality variations.
+* Add automated tests for preprocessing and API predictions.
+* Optimize inference latency and deployment reliability.
+
+## 👨‍💻 Author
+
+**Naveen Kumar T**
+
+B.Tech Artificial Intelligence and Data Science
+Aspiring Machine Learning Engineer
+
+GitHub: [Naveen-Kumar2006](https://github.com/Naveen-Kumar2006)
+
+---
+
+⭐ If you find this project interesting, consider starring the repository!
