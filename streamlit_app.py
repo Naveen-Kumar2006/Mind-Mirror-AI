@@ -1,26 +1,16 @@
+```python
 import os
 
 import altair as alt
 import pandas as pd
 import requests
 import streamlit as st
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 
-API_URL = os.getenv(
-    "API_URL",
-    "http://127.0.0.1:8000"
-).rstrip("/")
-
-EMOTION_NAMES = [
-    "Angry",
-    "Disgust",
-    "Fear",
-    "Happy",
-    "Sad",
-    "Surprise",
-    "Neutral",
-]
+# =========================================================
+# CONFIGURATION
+# =========================================================
 
 st.set_page_config(
     page_title="MindMirror AI",
@@ -28,15 +18,64 @@ st.set_page_config(
     layout="centered",
 )
 
+# Priority:
+# 1. Streamlit Secrets (deployed application)
+# 2. Environment variable
+# 3. Localhost (local development)
+
+try:
+    API_URL = st.secrets.get(
+        "API_URL",
+        os.getenv("API_URL", "http://127.0.0.1:8000"),
+    ).rstrip("/")
+except Exception:
+    API_URL = os.getenv(
+        "API_URL",
+        "http://127.0.0.1:8000",
+    ).rstrip("/")
+
+
+# =========================================================
+# HEADER
+# =========================================================
+
 st.title("🧠 MindMirror AI")
-st.write("Upload a facial image to predict its expression using a CNN model.")
+
+st.write(
+    "Upload a facial image to predict its expression "
+    "using a Convolutional Neural Network (CNN)."
+)
+
+st.caption(
+    "This application identifies facial-expression patterns. "
+    "It cannot determine a person's actual emotional state."
+)
+
+
+# =========================================================
+# BACKEND STATUS
+# =========================================================
+
+with st.expander("Backend configuration"):
+    st.write(f"API endpoint: `{API_URL}`")
+
+
+# =========================================================
+# IMAGE UPLOAD
+# =========================================================
 
 uploaded_file = st.file_uploader(
-    "Choose an image",
+    "Choose a facial image",
     type=["jpg", "jpeg", "png"],
 )
 
+
+# =========================================================
+# EMOTION PREDICTION
+# =========================================================
+
 if uploaded_file is not None:
+
     try:
         image = Image.open(uploaded_file).convert("RGB")
 
@@ -47,10 +86,14 @@ if uploaded_file is not None:
         )
 
         if st.button("Analyze Emotion", type="primary"):
-            with st.spinner("Analyzing facial expression..."):
-                try:
-                    uploaded_file.seek(0)
 
+            with st.spinner(
+                "Analyzing facial expression... "
+                "The server may take a moment to wake up."
+            ):
+
+                try:
+                    # Send the uploaded image to FastAPI
                     response = requests.post(
                         f"{API_URL}/predict",
                         files={
@@ -60,22 +103,44 @@ if uploaded_file is not None:
                                 uploaded_file.type or "image/jpeg",
                             )
                         },
-                        timeout=120,
+                        timeout=180,
                     )
 
                     response.raise_for_status()
+
                     result = response.json()
+
+                    # -----------------------------------------
+                    # EXTRACT PREDICTION RESULTS
+                    # -----------------------------------------
 
                     emotion = result["emotion"]
                     confidence = float(result["confidence"])
                     probabilities = result["probabilities"]
 
-                    st.subheader("Prediction")
-                    st.success(f"Predicted expression: {emotion}")
-                    st.metric(
-                        "Confidence",
-                        f"{confidence:.2%}",
+                    if not isinstance(probabilities, dict):
+                        raise ValueError(
+                            "The API returned an invalid probabilities format."
+                        )
+
+                    # -----------------------------------------
+                    # DISPLAY PREDICTION
+                    # -----------------------------------------
+
+                    st.subheader("🎯 Prediction")
+
+                    st.success(
+                        f"Predicted expression: {emotion}"
                     )
+
+                    st.metric(
+                        label="Model Confidence",
+                        value=f"{confidence:.2%}",
+                    )
+
+                    # -----------------------------------------
+                    # PROBABILITY CHART
+                    # -----------------------------------------
 
                     chart_data = pd.DataFrame(
                         {
@@ -94,7 +159,7 @@ if uploaded_file is not None:
                             x=alt.X(
                                 "Emotion:N",
                                 sort="-y",
-                                title="Emotion",
+                                title="Facial Expression",
                             ),
                             y=alt.Y(
                                 "Probability:Q",
@@ -121,31 +186,62 @@ if uploaded_file is not None:
                     )
 
                     st.caption(
-                        "Predictions describe facial-expression patterns, "
-                        "not a person's actual emotional state."
+                        "Probabilities represent the model's outputs, "
+                        "not verified emotional states."
                     )
+
+                # ---------------------------------------------
+                # ERROR HANDLING
+                # ---------------------------------------------
 
                 except requests.exceptions.ConnectionError:
                     st.error(
                         "Cannot connect to the FastAPI backend. "
-                        "Make sure the API server is running."
+                        "Check API_URL in Streamlit Secrets and "
+                        "verify that the Render backend is available."
                     )
 
                 except requests.exceptions.Timeout:
                     st.error(
                         "The prediction request timed out. "
-                        "Please try again."
+                        "The server may be waking up or processing "
+                        "the image. Please try again."
                     )
 
                 except requests.exceptions.HTTPError as error:
-                    st.error(
-                        f"The API returned an error: {error.response.text}"
+                    status_code = (
+                        error.response.status_code
+                        if error.response is not None
+                        else "Unknown"
                     )
 
-                except (KeyError, TypeError, ValueError) as error:
+                    st.error(
+                        f"The API returned HTTP {status_code}. "
+                        "Check the backend logs for details."
+                    )
+
+                    if error.response is not None:
+                        st.code(error.response.text)
+
+                except requests.exceptions.RequestException as error:
+                    st.error(f"Request failed: {error}")
+
+                except (
+                    KeyError,
+                    TypeError,
+                    ValueError,
+                ) as error:
                     st.error(
                         f"Unexpected API response: {error}"
                     )
 
-    except Exception:
-        st.error("Unable to open this image. Please upload a valid JPG or PNG.")
+    except (
+        UnidentifiedImageError,
+        OSError,
+        ValueError,
+    ):
+        st.error(
+            "Unable to open this image. "
+            "Please upload a valid JPG or PNG image."
+        )
+```
