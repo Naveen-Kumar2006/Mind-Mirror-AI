@@ -1,0 +1,5 @@
+Test Accuracy: 0.5807
+Macro Precision: 0.5781
+Macro Recall: 0.5608
+Macro F1-score: 0.5678
+Test Samples: 3589
